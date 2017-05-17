@@ -90,11 +90,11 @@ module InsightsExport
             [key.to_sym, obj]
           end.to_h,
           custom: {},
-          aggregate: {
-            count: {
-              sql: "count($$.#{model.primary_key})"
-            }
-          },
+          # aggregate: {
+          #   count: {
+          #     sql: "count($$.#{model.primary_key})"
+          #   }
+          # },
           links: {
             incoming: {},
             outgoing: {}
