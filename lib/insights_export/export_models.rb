@@ -51,7 +51,7 @@ module InsightsExport
     def self.get_structure
       Rails.application.eager_load! if Rails.env.development?
 
-      models = ApplicationRecord.descendants
+      models = ActiveRecord::Base.descendants
 
       models.map do |model|
         begin
