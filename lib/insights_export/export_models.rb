@@ -67,88 +67,107 @@ module InsightsExport
 
       model_strings = models.map(&:to_s)
 
-      models.map do |model|
+      return_object = {}
+
+      models.each do |model|
         begin
           columns_hash = model.columns_hash
         rescue
           next
         end
 
-        model_structure = {
-          enabled: true,
-          model: model.to_s,
-          table_name: model.table_name,
-          primary_key: model.primary_key,
-          columns: columns_hash.map do |key, column|
-            obj = if column.type.in? %i(datetime date)
-                    { type: :time }
-                  elsif column.type.in? %i(integer decimal float)
-                    { type: :number }
-                  elsif column.type.in? %i(string text)
-                    { type: :string }
-                  elsif column.type.in? %i(boolean)
-                    { type: :boolean }
-                  elsif column.type.in? %i(json)
-                    { type: :payload }
-                  elsif column.type.in? %i(geography)
-                    { type: :geo }
-                  else
-                    puts "Warning! Unknown column type: :#{column.type} for #{model.to_s}, column #{key}"
-                    { unknown: column.type }
-                  end
+        begin
+          model_structure = {
+            enabled: true,
+            model: model.to_s,
+            table_name: model.table_name,
+            primary_key: model.primary_key,
+            columns: columns_hash.map do |key, column|
+              obj = if column.type.in? %i(datetime date)
+                      { type: :time }
+                    elsif column.type.in? %i(integer decimal float)
+                      { type: :number }
+                    elsif column.type.in? %i(string text)
+                      { type: :string }
+                    elsif column.type.in? %i(boolean)
+                      { type: :boolean }
+                    elsif column.type.in? %i(json)
+                      { type: :payload }
+                    elsif column.type.in? %i(geography)
+                      { type: :geo }
+                    else
+                      puts "Warning! Unknown column type: :#{column.type} for #{model.to_s}, column #{key}"
+                      { unknown: column.type }
+                    end
 
-            if key == model.primary_key
-              obj[:index] = :primary_key
-            end
+              if key == model.primary_key
+                obj[:index] = :primary_key
+              end
 
-            [key.to_sym, obj]
-          end.to_h,
-          custom: {},
-          # aggregate: {
-          #   count: {
-          #     sql: "count($$.#{model.primary_key})"
-          #   }
-          # },
-          links: {
-            incoming: {},
-            outgoing: {}
+              [key.to_sym, obj]
+            end.to_h,
+            custom: {},
+            links: {
+              incoming: {},
+              outgoing: {}
+            }
           }
-        }
 
-        model.reflections.each do |association_name, reflection|
-          reflection_class = reflection.class_name.gsub(/^::/, '')
+          model.reflections.each do |association_name, reflection|
+            begin
+              reflection_class = reflection.class_name.gsub(/^::/, '')
 
-          next unless model_strings.include?(reflection_class)
+              next unless model_strings.include?(reflection_class)
 
-          if reflection.macro == :belongs_to
-            # reflection_class # User
-            # reflection.foreign_key # user_id
-            # reflection.association_primary_key # id
+              if reflection.macro == :belongs_to
+                raise 'Bla bla' if model.to_s == 'Product'
+                # reflection_class # User
+                # reflection.foreign_key # user_id
+                # reflection.association_primary_key # id
 
-            model_structure[:columns].delete(reflection.foreign_key.to_sym)
-            model_structure[:links][:outgoing][association_name] = {
-              model: reflection_class,
-              model_key: reflection.association_primary_key,
-              my_key: reflection.foreign_key
-            }
-          elsif reflection.macro.in? %i(has_one has_many)
-            # skip has_many :through associations
-            if reflection.options.try(:[], :through).present?
-              next
+                model_structure[:columns].delete(reflection.foreign_key.to_sym)
+                model_structure[:links][:outgoing][association_name] = {
+                  model: reflection_class,
+                  model_key: reflection.association_primary_key,
+                  my_key: reflection.foreign_key
+                }
+              elsif reflection.macro.in? %i(has_one has_many)
+                # skip has_many :through associations
+                if reflection.options.try(:[], :through).present?
+                  next
+                end
+
+                model_structure[:links][:incoming][association_name] = {
+                  model: reflection_class,
+                  model_key: reflection.foreign_key,
+                  my_key: reflection.association_primary_key
+                }
+              else
+                puts "Warning! Unknown reflection :#{reflection.macro} for association '#{association_name}' on model '#{model.to_s}'"
+              end
+            rescue => error
+              puts "!! Error when exporting association '#{association_name}' on model '#{model.to_s}'"
+              print_exception(error)
             end
-
-            model_structure[:links][:incoming][association_name] = {
-              model: reflection_class,
-              model_key: reflection.foreign_key,
-              my_key: reflection.association_primary_key
-            }
-          else
-            puts "Warning! Unknown reflection :#{reflection.macro} for association #{association_name} on model #{model.to_s}"
           end
-        end
 
-        [model.to_s, model_structure]
-      end.select(&:present?).sort_by { |k, v| k }.to_h.deep_stringify_keys
+          return_object[model.to_s] = model_structure
+        rescue => error
+          puts "!! Error when exporting model '#{model.to_s}'"
+          print_exception(error)
+        end
+      end
+
+      return_object.sort_by { |k, v| k }.to_h.deep_stringify_keys
+    end
+
+    def self.print_exception(error)
+      puts "!! Exception: #{error.message}"
+      if InsightsExport.configuration.debug
+        puts error.backtrace
+      else
+        puts "-> Set config.debug = true to see the full backtrace"
+      end
     end
   end
 end

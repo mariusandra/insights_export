@@ -9,8 +9,7 @@ To configure the gem, create a file like `config/initializers/insights_export.rb
 ```rb
 InsightsExport.configure do |config|
   # The path to the export file
-  # Defaults to "#{Rails.root}/config/insights.yml"
-  config.export_path = "#{Rails.root}/config/insights2.yml"
+  config.export_path = "#{Rails.root}/config/insights.yml"
 
   # Export only models in this list
   # Array of strings to filter or blank to export all.
@@ -19,5 +18,8 @@ InsightsExport.configure do |config|
   # Exclude these models from the export
   # Array of strings to filter or blank to export all.
   config.except_models = []
+
+  # Print a backtrace when the export throws an exception.
+  config.debug = false
 end
 ```
