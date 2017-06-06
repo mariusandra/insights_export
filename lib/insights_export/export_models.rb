@@ -1,7 +1,7 @@
 module InsightsExport
   class ExportModels
     def self.config_file
-      "#{Rails.root}/config/insights.yml"
+      InsightsExport.configuration.export_path
     end
 
     def self.load
@@ -53,6 +53,20 @@ module InsightsExport
 
       models = ActiveRecord::Base.descendants
 
+      # models to include
+      only_models = InsightsExport.configuration.only_models
+      if only_models.present?
+        models = models.select { |m| m.to_s.in?(only_models) }
+      end
+
+      # models to exclude
+      except_models = InsightsExport.configuration.except_models
+      if except_models.present?
+        models = models.reject { |m| m.to_s.in?(except_models) }
+      end
+
+      model_strings = models.map(&:to_s)
+
       models.map do |model|
         begin
           columns_hash = model.columns_hash
@@ -102,6 +116,8 @@ module InsightsExport
         }
 
         model.reflections.each do |association_name, reflection|
+          next unless model_strings.include?(reflection.class_name)
+
           if reflection.macro == :belongs_to
             # reflection.class_name # User
             # reflection.foreign_key # user_id
