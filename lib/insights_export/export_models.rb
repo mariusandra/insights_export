@@ -116,16 +116,18 @@ module InsightsExport
         }
 
         model.reflections.each do |association_name, reflection|
-          next unless model_strings.include?(reflection.class_name)
+          reflection_class = reflection.class_name.gsub(/^::/, '')
+
+          next unless model_strings.include?(reflection_class)
 
           if reflection.macro == :belongs_to
-            # reflection.class_name # User
+            # reflection_class # User
             # reflection.foreign_key # user_id
             # reflection.association_primary_key # id
 
             model_structure[:columns].delete(reflection.foreign_key.to_sym)
             model_structure[:links][:outgoing][association_name] = {
-              model: reflection.class_name,
+              model: reflection_class,
               model_key: reflection.association_primary_key,
               my_key: reflection.foreign_key
             }
@@ -136,7 +138,7 @@ module InsightsExport
             end
 
             model_structure[:links][:incoming][association_name] = {
-              model: reflection.class_name,
+              model: reflection_class,
               model_key: reflection.foreign_key,
               my_key: reflection.association_primary_key
             }
