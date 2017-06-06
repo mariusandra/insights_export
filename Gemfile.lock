@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    insights_export (0.1.0)
+    insights_export (0.2.2)
 
 GEM
   remote: https://rubygems.org/
