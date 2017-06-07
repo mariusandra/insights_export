@@ -120,7 +120,6 @@ module InsightsExport
               next unless model_strings.include?(reflection_class)
 
               if reflection.macro == :belongs_to
-                raise 'Bla bla' if model.to_s == 'Product'
                 # reflection_class # User
                 # reflection.foreign_key # user_id
                 # reflection.association_primary_key # id
