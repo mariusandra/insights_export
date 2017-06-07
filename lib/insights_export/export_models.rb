@@ -25,8 +25,20 @@ module InsightsExport
             model_structure.each do |key, value|
               if key == 'custom'
                 next
-              elsif key == 'columns' || key == 'aggregate'
+              elsif key == 'columns' || key == 'links'
                 output[model_name][key] ||= {}
+
+                # don't merge if 'links' uses the old { links: { incoming: {}, outgoing: {} } } structure.
+                # just replace then with the new { links: {} } structure
+                # TODO: remove this in the future
+                if key == 'links'
+                  existing_hash_keys = output[model_name][key].keys.map(&:to_s).sort
+                  if existing_hash_keys == %w(incoming outgoing)
+                    output[model_name][key] = value
+                    next
+                  end
+                end
+
                 value.each do |value_key, value_value|
                   existing = output[model_name][key][value_key]
                   if existing != false
@@ -114,10 +126,7 @@ module InsightsExport
               [key.to_sym, obj]
             end.to_h,
             custom: {},
-            links: {
-              incoming: {},
-              outgoing: {}
-            }
+            links: {}
           }
 
           model.reflections.each do |association_name, reflection|
@@ -132,7 +141,7 @@ module InsightsExport
                 # reflection.association_primary_key # id
 
                 model_structure[:columns].delete(reflection.foreign_key.to_sym)
-                model_structure[:links][:outgoing][association_name] = {
+                model_structure[:links][association_name] = {
                   model: reflection_class,
                   model_key: reflection.association_primary_key,
                   my_key: reflection.foreign_key
@@ -143,7 +152,7 @@ module InsightsExport
                   next
                 end
 
-                model_structure[:links][:incoming][association_name] = {
+                model_structure[:links][association_name] = {
                   model: reflection_class,
                   model_key: reflection.foreign_key,
                   my_key: reflection.association_primary_key
