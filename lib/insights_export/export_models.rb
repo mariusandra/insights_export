@@ -53,28 +53,35 @@ module InsightsExport
 
       models = ActiveRecord::Base.descendants
 
+      # skip all abstract classes (e.g. ApplicationRecord)
+      models = models.reject { |m| m.abstract_class? }
+
       # models to include
       only_models = InsightsExport.configuration.only_models
       if only_models.present?
-        models = models.select { |m| m.to_s.in?(only_models) }
+        models = models.select { |m| only_models.select { |lm| lm.is_a?(Regexp) ? lm.match(m.to_s) : lm == m.to_s }.present? }
       end
 
       # models to exclude
       except_models = InsightsExport.configuration.except_models
       if except_models.present?
-        models = models.reject { |m| m.to_s.in?(except_models) }
+        models = models.reject { |m| except_models.select { |lm| lm.is_a?(Regexp) ? lm.match(m.to_s) : lm == m.to_s }.present? }
       end
 
+      # sort them
+      models = models.sort_by { |m| m.to_s }
+
+      # cache the strings
       model_strings = models.map(&:to_s)
 
+      # show that we're doing something
+      puts "InsightsExport: #{model_strings.join(', ')}"
+
+      # this will contain our result
       return_object = {}
 
       models.each do |model|
-        begin
-          columns_hash = model.columns_hash
-        rescue
-          next
-        end
+        columns_hash = model.columns_hash
 
         begin
           model_structure = {

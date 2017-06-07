@@ -12,11 +12,11 @@ InsightsExport.configure do |config|
   config.export_path = "#{Rails.root}/config/insights.yml"
 
   # Export only models in this list
-  # Array of strings to filter or blank to export all.
+  # Array of strings or regexps to filter or blank to export all.
   config.only_models = []
 
   # Exclude these models from the export
-  # Array of strings to filter or blank to export all.
+  # Array of strings or regexps to filter or blank to export all.
   config.except_models = []
 
   # Print a backtrace when the export throws an exception.

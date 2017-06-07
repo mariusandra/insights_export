@@ -5,11 +5,11 @@ module InsightsExport
     attr_accessor :export_path
 
     # Export only models in this list
-    # Array of strings to filter or empty array to export all.
+    # Array of strings or regexps to filter or blank to export all.
     attr_accessor :only_models
 
     # Exclude these models from the export
-    # Array of strings to filter or empty array to export all.
+    # Array of strings or regexps to filter or blank to export all.
     attr_accessor :except_models
 
     # Print a backtrace when the export throws an exception.
